@@ -1,0 +1,10 @@
+# fetched on first run (7.8MB)
+hand_landmarker.task
+
+# recordings and logs from live sessions
+calib*.jsonl
+probe*.jsonl
+*.log
+
+__pycache__/
+.DS_Store

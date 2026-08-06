@@ -1,0 +1,3 @@
+#!/bin/zsh
+# Convenience wrapper -- `flipoff` from anywhere, args pass straight through.
+exec /opt/homebrew/bin/uv run --script /Users/angus/flipoff/flipoff.py "$@"
