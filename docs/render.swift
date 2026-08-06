@@ -127,7 +127,7 @@ func social(_ theme: Theme) -> Data {
                    fontSize: 44, theme: theme)
 
         // Survives being screenshotted and reposted without the link.
-        draw("github.com/hangryclaude/flipoff",
+        draw("github.com/angusbuilds/flipoff",
              [.font: NSFont.monospacedSystemFont(ofSize: 19, weight: .regular),
               .foregroundColor: theme.meta],
              at: CGPoint(x: 571, y: 74))

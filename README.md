@@ -16,7 +16,7 @@ have open.
 ![pipeline](docs/pipeline.svg)
 
 ```
-git clone https://github.com/hangryclaude/flipoff && cd flipoff
+git clone https://github.com/angusbuilds/flipoff && cd flipoff
 
 ./flipoff                        # run it
 ./flipoff --tune                 # camera window + live score, sends nothing
