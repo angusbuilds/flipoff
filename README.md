@@ -5,7 +5,7 @@ Flip off your webcam. It texts for you.
 Sings the message out loud the instant it sees the gesture, then sends
 **𝗙𝗨𝗖𝗞 𝗬𝗢𝗨** — bold, uppercase — with iMessage fireworks on the other end.
 
-![how it decides](docs/detection.png)
+![pipeline](docs/pipeline.svg)
 
 ```
 ./flipoff                        # run it
@@ -28,6 +28,8 @@ foreshortens it into something that looks curled.
 Each finger is measured by **extension**: straight-line knuckle-to-tip divided by
 the length of the bone path. 1.0 is straight, ~0.35 is a clenched fist. It needs
 no reference frame, so hand orientation and metacarpal geometry can't skew it.
+
+![how it decides](docs/detection.png)
 
 Every number below came off a real webcam, not a model:
 
@@ -80,6 +82,27 @@ Under synthetic landmark noise, holding a pose 2s at 30fps (MediaPipe's error is
 | push glasses up @ 4mm | **0%** |
 | nose scratch @ 4mm | **0%** |
 | open palm @ 4mm | **0%** |
+
+## Cost of leaving it on
+
+It watches the camera continuously, so the bill is CPU rather than correctness.
+Measured with CPU-time deltas on an 18-core M5 Max:
+
+| | one core |
+|---|---|
+| hand in frame, 30 fps | ~20% |
+| nothing happening, 2 fps | ~13%\* |
+| memory, steady | 363 MB |
+
+\* That idle figure is honest but pessimistic — hands kept drifting into frame
+while measuring, so some of it is active work. Before the throttle existed it ran
+the model at 30 fps regardless, which is a full core spent watching an empty room.
+
+Idle drops to a slow poll after three handless seconds and snaps back to full
+speed the moment a hand appears, so the throttle costs at most one idle interval
+before the gesture timer even starts. The log self-truncates at 4 MB, a camera
+that stops returning frames backs off instead of spinning, and a malformed frame
+is reported and skipped rather than ending a week-long run.
 
 ## Known limitations
 

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" width="1000" height="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <style>
+    .box   { fill: #ffffff; stroke: #dfe3ea; stroke-width: 1.5; rx: 10; }
+    .title { fill: #111318; font-size: 14px; font-weight: 600; }
+    .note  { fill: #7a828f; font-size: 11.5px; }
+    .num   { fill: #e0245e; font-size: 11.5px; font-weight: 600; }
+    .arrow { stroke: #c3cad6; stroke-width: 1.6; fill: none; }
+    .stage { fill: #aab2c0; font-size: 10px; letter-spacing: .09em; }
+  </style>
+
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+    <path d="M0,0 L10,5 L0,10 z" fill="#c3cad6"/>
+  </marker>
+
+  <text x="24" y="34" class="title" font-size="17">How a flip-off becomes a text</text>
+  <text x="24" y="56" class="note">Each box is measured, not assumed — the numbers come from frames recorded off a real webcam.</text>
+
+  <!-- 1 camera -->
+  <rect class="box" x="24" y="92" width="168" height="104"/>
+  <text x="40" y="116" class="stage">01 · CAMERA</text>
+  <text x="40" y="140" class="title">Webcam frame</text>
+  <text x="40" y="161" class="note">640×480, mirrored</text>
+  <text x="40" y="179" class="num">2 fps idle · 30 fps active</text>
+
+  <!-- 2 landmarks -->
+  <rect class="box" x="216" y="92" width="176" height="104"/>
+  <text x="232" y="116" class="stage">02 · TRACKING</text>
+  <text x="232" y="140" class="title">21 landmarks</text>
+  <text x="232" y="161" class="note">MediaPipe, metric 3D</text>
+  <text x="232" y="179" class="note">clipped hands dropped</text>
+
+  <!-- 3 extension -->
+  <rect class="box" x="416" y="92" width="192" height="104"/>
+  <text x="432" y="116" class="stage">03 · MEASURE</text>
+  <text x="432" y="140" class="title">Extension ratio</text>
+  <text x="432" y="161" class="note">knuckle→tip ÷ bone path</text>
+  <text x="432" y="179" class="num">middle 0.93 · folded 0.6–0.74</text>
+
+  <!-- 4 detector -->
+  <rect class="box" x="632" y="92" width="168" height="104"/>
+  <text x="648" y="116" class="stage">04 · DEBOUNCE</text>
+  <text x="648" y="140" class="title">Hold + smooth</text>
+  <text x="648" y="161" class="note">EMA, re-arm, cooldown</text>
+  <text x="648" y="179" class="num">fires in ~0.25 s</text>
+
+  <!-- 5 send -->
+  <rect class="box" x="824" y="92" width="152" height="104"/>
+  <text x="840" y="116" class="stage">05 · SEND</text>
+  <text x="840" y="140" class="title">iMessage</text>
+  <text x="840" y="161" class="note">selected chat → handle</text>
+  <text x="840" y="179" class="num">𝗙𝗨𝗖𝗞 𝗬𝗢𝗨</text>
+
+  <path class="arrow" marker-end="url(#a)" d="M192,144 L214,144"/>
+  <path class="arrow" marker-end="url(#a)" d="M392,144 L414,144"/>
+  <path class="arrow" marker-end="url(#a)" d="M608,144 L630,144"/>
+  <path class="arrow" marker-end="url(#a)" d="M800,144 L822,144"/>
+
+  <text x="24" y="238" class="note">The measure step is the one that matters. An earlier version scored joint angles against a palm-frame reference vector, which was</text>
+  <text x="24" y="256" class="note">off by ~100° on real hands — an extended middle finger read as bent and nothing ever fired. A ratio of two lengths needs no reference.</text>
+  <text x="24" y="282" class="num">10 / 10 real flip-offs fire   ·   0 / 14 ordinary hands do</text>
+</svg>

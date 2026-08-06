@@ -20,6 +20,7 @@ which defeats the whole point. Use --tune to watch the score live.
 import argparse
 import json
 import os
+import stat
 import subprocess
 import sys
 import time
@@ -84,6 +85,15 @@ REACH_MARGIN = 1.05
 # Cheaper to ignore the frame than to score garbage.
 FRAME_EDGE = 0.02
 MIN_CONFIDENCE = 0.6
+
+# Running the landmarker at 30fps to watch an empty room costs a full core --
+# measured at 30% CPU sustained, which on a laptop is heat and battery for
+# nothing. Idle drops to a slow poll and full speed resumes the moment a hand
+# appears, so the cost of the throttle is at most one idle interval of latency
+# before the gesture timer even starts.
+ACTIVE_FPS, IDLE_FPS = 30.0, 2.0
+IDLE_AFTER = 3.0        # seconds without a hand before throttling down
+LOG_LIMIT = 4 * 1024 * 1024
 
 CONNECTIONS = (  # for --tune only
     (0, 1), (0, 5), (0, 17), (5, 9), (9, 13), (13, 17),
@@ -405,6 +415,28 @@ def send_direct(handle, text):
     return r.returncode == 0
 
 
+def rotate_log():
+    """Truncate our own stdout if it has grown past LOG_LIMIT.
+
+    Running unattended for weeks, an unbounded log is the failure that
+    eventually matters. stdout is redirected to a file by whatever launched us,
+    so check the descriptor rather than a path we do not own.
+    """
+    try:
+        st = os.fstat(sys.stdout.fileno())
+    except (OSError, ValueError):
+        return
+    if not stat.S_ISREG(st.st_mode) or st.st_size < LOG_LIMIT:
+        return
+    try:
+        os.ftruncate(sys.stdout.fileno(), 0)
+        sys.stdout.seek(0)
+        print(f"[{time.strftime('%H:%M:%S')}] log truncated at {LOG_LIMIT // 1024}KB",
+              flush=True)
+    except OSError:
+        pass
+
+
 def ensure_model():
     if MODEL.exists():
         return
@@ -494,12 +526,15 @@ def main():
                      "use the exact name as it appears in Messages, or a number")
         print(f"pinned recipient: {args.to} <{handle}>", flush=True)
 
-    # Fail here rather than after a successful gesture that silently goes nowhere.
-    # Direct send addresses the person, so it needs no keystrokes at all.
-    if not args.test and not handle and not accessibility_ok():
-        sys.exit("Accessibility is off, so nothing can be typed into Messages.\n"
-                 "System Settings > Privacy & Security > Accessibility, tick your "
-                 "terminal, then rerun.")
+    # A warning, not a wall. Sending resolves the conversation to a handle and
+    # addresses the person directly, which needs no keystrokes -- Accessibility
+    # only matters for the group-chat paste fallback. Exiting here used to stop
+    # the whole thing over a permission most sends never touch.
+    if not args.test and not accessibility_ok():
+        print("note: Accessibility is off. Direct sends still work; only group "
+              "chats, which fall back to pasting, will fail.\n"
+              "      System Settings > Privacy & Security > Accessibility.",
+              file=sys.stderr, flush=True)
 
     cam = cv2.VideoCapture(args.camera)
     if not cam.isOpened():
@@ -530,6 +565,10 @@ def main():
     target = None
     gate_checked = 0.0
     stamp_ms = 0
+    last_hand = 0.0
+    last_rotate = 0.0
+    misses = 0
+    hiccups = 0
     episode_seen = 0.0        # when a hand was last visible
     episode_best = 0.0        # best raw score during this sighting
     episode_detail = None
@@ -540,10 +579,20 @@ def main():
         while True:
             ok, frame = cam.read()
             if not ok:
-                time.sleep(0.1)
+                # A camera that has genuinely gone away never recovers by being
+                # asked faster; back off instead of spinning on it.
+                misses += 1
+                if misses in (30, 300):
+                    print(f"[{time.strftime('%H:%M:%S')}] camera returned no frame "
+                          f"x{misses}", flush=True)
+                time.sleep(0.5 if misses > 30 else 0.1)
                 continue
+            misses = 0
 
             now = time.monotonic()
+            if now - last_rotate > 60.0:
+                last_rotate = now
+                rotate_log()
 
             # The camera is read every frame, always, whatever app you're in.
             # This used to skip tracking entirely unless Messages was frontmost,
@@ -555,11 +604,24 @@ def main():
             image = mp.Image(image_format=mp.ImageFormat.SRGB,
                              data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             stamp_ms = max(stamp_ms + 1, int(now * 1000))  # must strictly increase
-            result = landmarker.detect_for_video(image, stamp_ms)
+            # A single malformed frame should not end a run that has been going
+            # for a week. Reported on a decaying schedule so a persistent fault
+            # is still visible without filling the log.
+            try:
+                result = landmarker.detect_for_video(image, stamp_ms)
+            except Exception as exc:                        # noqa: BLE001
+                hiccups += 1
+                if hiccups in (1, 10, 100, 1000):
+                    print(f"[{time.strftime('%H:%M:%S')}] detector hiccup "
+                          f"x{hiccups}: {exc}", flush=True)
+                time.sleep(0.2)
+                continue
 
             # World landmarks are metric 3D with the origin at the hand's centre,
             # so curl angles hold up when the finger is aimed down the lens and
             # its 2D projection collapses to nothing.
+            if result.hand_world_landmarks:
+                last_hand = now
             raw, best, raw_hand = 0.0, None, "?"
             for i, world in enumerate(result.hand_world_landmarks):
                 norm = result.hand_landmarks[i]
@@ -662,7 +724,12 @@ def main():
                     print(f"[{clock}] -> {now_target}: {args.message!r}  "
                           f"({det.smooth:.2f})", flush=True)
 
-            time.sleep(0.02)  # cap around 30fps; the accurate model isn't free
+            # Throttle when nothing is happening. `last_hand` is the only input:
+            # a hand anywhere in frame keeps it at full speed, an empty room
+            # settles to a slow poll.
+            idle = (now - last_hand) > IDLE_AFTER
+            budget = 1.0 / (IDLE_FPS if idle else ACTIVE_FPS)
+            time.sleep(max(0.0, budget - (time.monotonic() - now)))
     except KeyboardInterrupt:
         print("\nstopped")
     finally:
