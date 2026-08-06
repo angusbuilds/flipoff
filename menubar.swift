@@ -36,9 +36,17 @@ final class Controller: NSObject, NSApplicationDelegate {
 
     private var isRunning: Bool { task?.isRunning ?? false }
 
+    /// Armed state survives a relaunch, so turning it on is a one-time act
+    /// rather than something to redo after every reboot.
+    private var wasArmed: Bool {
+        get { UserDefaults.standard.bool(forKey: "armed") }
+        set { UserDefaults.standard.set(newValue, forKey: "armed") }
+    }
+
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.setActivationPolicy(.accessory)   // menu bar only, no Dock icon
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if wasArmed { start() }
         render()
         // The child is not reparented on quit, so make sure it dies with us.
         NotificationCenter.default.addObserver(
@@ -79,7 +87,13 @@ final class Controller: NSObject, NSApplicationDelegate {
     }
 
     @objc private func toggle(_ sender: Any?) {
-        isRunning ? stop() : start()
+        if isRunning {
+            stop()
+            wasArmed = false
+        } else {
+            start()
+            wasArmed = isRunning
+        }
         render()
     }
 

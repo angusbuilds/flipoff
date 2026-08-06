@@ -449,9 +449,11 @@ def main():
                     help="log detections, never send, ignore which app is frontmost")
     ap.add_argument("--tune", action="store_true",
                     help="camera window with live scores; implies --test")
-    ap.add_argument("--effect", choices=tuple(EFFECT_TRIGGERS), default="fireworks",
-                    help="iMessage screen effect to play on their device "
-                         "(default: fireworks)")
+    ap.add_argument("--effect", choices=tuple(EFFECT_TRIGGERS), default="none",
+                    help="iMessage screen effect to play on their device. Off by "
+                         "default: the effect is triggered by a phrase the "
+                         "recipient can see, so fireworks costs you a visible "
+                         "'Happy New Year' tacked onto the message")
     ap.add_argument("--bold", action=argparse.BooleanOptionalAction, default=True,
                     help="send the message in bold uppercase (default: on)")
     ap.add_argument("--hand", choices=("right", "left", "any"), default="right",
