@@ -14,7 +14,7 @@
     .lgnd  { fill: #57606a; font-size: 13px }
     .edge  { fill: #9aa3b2; font-size: 10.5px; font-weight: 600 }
     @media (prefers-color-scheme: dark) {
-      .bg    { fill: #0b0d12 }
+      .bg    { fill: #0d1117 }
       .title { fill: #e8ebf5 }
       .sub   { fill: #8b949e }
       .axis  { fill: #8b949e }

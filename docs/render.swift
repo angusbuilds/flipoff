@@ -25,7 +25,7 @@ struct Theme {
         meta: NSColor(srgbRed: 0.557, green: 0.557, blue: 0.576, alpha: 1))
 
     static let dark = Theme(
-        bg:   NSColor(srgbRed: 0.043, green: 0.051, blue: 0.071, alpha: 1),
+        bg:   NSColor(srgbRed: 0.051, green: 0.067, blue: 0.090, alpha: 1),
         ink:  NSColor(srgbRed: 0.941, green: 0.953, blue: 0.973, alpha: 1),
         mute: NSColor(srgbRed: 0.545, green: 0.580, blue: 0.639, alpha: 1),
         meta: NSColor(srgbRed: 0.404, green: 0.435, blue: 0.490, alpha: 1))

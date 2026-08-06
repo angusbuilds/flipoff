@@ -12,7 +12,7 @@
        scheme. Without it the dark ink sat on a transparent canvas and the whole
        diagram vanished on the dark theme. */
     @media (prefers-color-scheme: dark) {
-      .bg    { fill: #0b0d12; }
+      .bg    { fill: #0d1117; }
       .box   { fill: #111722; stroke: #232b39; }
       .title { fill: #e8ebf5; }
       .note  { fill: #8b949e; }
