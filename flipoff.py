@@ -599,8 +599,13 @@ def main():
             elif episode_seen and now - episode_seen > 0.6:
                 if not fired and now - episode_logged > 2.0:
                     episode_logged = now
-                    verdict = ("below threshold" if episode_best < args.threshold
-                               else "too brief")
+                    if episode_best < args.threshold:
+                        verdict = "below threshold"
+                    elif now - last_sent < args.cooldown:
+                        verdict = (f"cooling down, {args.cooldown - (now - last_sent):.0f}s "
+                                   "left")
+                    else:
+                        verdict = "not held long enough"
                     print(f"[{time.strftime('%H:%M:%S')}] saw {episode_hand} hand, "
                           f"best {episode_best:.2f} (need {args.threshold:.2f}) "
                           f"- {verdict}  {_ext_str(episode_detail)}", flush=True)
