@@ -8,7 +8,7 @@ Sings the message out loud the instant it sees the gesture, then sends
 ```
 ./flipoff                        # run it
 ./flipoff --tune                 # camera window + live score, sends nothing
-./flipoff --to "Bryan Chiang"    # always text one person
+./flipoff --to "Jane Doe"        # always text one person
 ./flipoff -m "hey" --effect none # different message, no animation
 ./test_gesture.py                # the suite
 ```
