@@ -234,12 +234,15 @@ give TCC a stable identity. The menu-bar app above is the easier route.
 ./flipoff --tune --record mine.jsonl
 ```
 
+![what --tune shows you](docs/tune.svg)
+
 Watch the bar; green past the tick means it would fire. The recording is real
 landmarks from your hand, which is what `fixtures.json` was built from — and what
 every threshold in here was calibrated against after a synthetic model got them
 badly wrong.
 
-`./docs/chart.py` redraws the figure above from `fixtures.json` and reads the
-bands out of `flipoff.py`, so add your own frames and the picture updates with
-them. It used to be a hand-built image, which is how it spent a while
-advertising thresholds the code had already moved off.
+`./docs/chart.py` and `./docs/tuneshot.py` redraw both figures from
+`fixtures.json`, reading the bands out of `flipoff.py`, so add your own frames and
+the pictures update with them. The data figure used to be a hand-built image,
+which is how it spent a while advertising thresholds the code had already moved
+off.
