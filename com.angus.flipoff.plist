@@ -1,20 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Login persistence. Both paths below are placeholders: launchd resolves nothing
+  relative, so edit them to your own clone before loading this.
+
+    sed -i '' "s|/PATH/TO/flipoff|$PWD|g" com.angus.flipoff.plist
+    cp com.angus.flipoff.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.angus.flipoff.plist
+
+  Read the warning in the README first. TCC attaches camera and accessibility
+  grants to the responsible process, and a launchd job is a different identity
+  with neither, so loading this as-is gets you a crash loop rather than a
+  working detector. The menu-bar app is the easier route.
+-->
 <plist version="1.0">
 <dict>
   <key>Label</key>
   <string>com.angus.flipoff</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/angus/flipoff/flipoff</string>
+    <string>/PATH/TO/flipoff/flipoff</string>
   </array>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>/Users/angus/flipoff/flipoff.log</string>
+  <string>/PATH/TO/flipoff/flipoff.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/angus/flipoff/flipoff.log</string>
+  <string>/PATH/TO/flipoff/flipoff.log</string>
 </dict>
 </plist>

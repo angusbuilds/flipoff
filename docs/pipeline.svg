@@ -1,15 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 300" width="1000" height="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
   <style>
+    .bg    { fill: #ffffff; }
     .box   { fill: #ffffff; stroke: #dfe3ea; stroke-width: 1.5; rx: 10; }
     .title { fill: #111318; font-size: 14px; font-weight: 600; }
     .note  { fill: #7a828f; font-size: 11.5px; }
     .num   { fill: #e0245e; font-size: 11.5px; font-weight: 600; }
     .arrow { stroke: #c3cad6; stroke-width: 1.6; fill: none; }
+    .head  { fill: #c3cad6; }
     .stage { fill: #aab2c0; font-size: 10px; letter-spacing: .09em; }
+    /* GitHub renders this as an image, which still picks up the reader's colour
+       scheme. Without it the dark ink sat on a transparent canvas and the whole
+       diagram vanished on the dark theme. */
+    @media (prefers-color-scheme: dark) {
+      .bg    { fill: #0b0d12; }
+      .box   { fill: #111722; stroke: #232b39; }
+      .title { fill: #e8ebf5; }
+      .note  { fill: #8b949e; }
+      .num   { fill: #ff5c8a; }
+      .arrow { stroke: #39424f; }
+      .head  { fill: #39424f; }
+      .stage { fill: #6b7480; }
+    }
   </style>
 
+  <rect class="bg" x="0" y="0" width="1000" height="300"/>
+
   <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-    <path d="M0,0 L10,5 L0,10 z" fill="#c3cad6"/>
+    <path class="head" d="M0,0 L10,5 L0,10 z"/>
   </marker>
 
   <text x="24" y="34" class="title" font-size="17">How a flip-off becomes a text</text>

@@ -1,3 +1,7 @@
 #!/bin/zsh
 # Convenience wrapper -- `flipoff` from anywhere, args pass straight through.
-exec /opt/homebrew/bin/uv run --script /Users/angus/flipoff/flipoff.py "$@"
+# ${0:A:h} is this script's own directory, so a clone runs wherever it landed.
+# uv is found on PATH first so it also works under launchd, where PATH is bare.
+uv=${commands[uv]:-/opt/homebrew/bin/uv}
+[[ -x $uv ]] || { print -u2 "flipoff: uv not found -- brew install uv"; exit 1 }
+exec $uv run --script "${0:A:h}/flipoff.py" "$@"

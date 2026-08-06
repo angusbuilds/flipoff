@@ -3,13 +3,33 @@
 // scaled from a screenshot. No dependencies: swiftc ships with the CLT.
 //
 //   swiftc -O docs/render.swift -o /tmp/flipoff-render && /tmp/flipoff-render
+//
+// Writes beside this source file, so it works from any clone.
 
 import AppKit
 
-let INK  = NSColor(srgbRed: 0.067, green: 0.075, blue: 0.094, alpha: 1)
-let MUTE = NSColor(srgbRed: 0.478, green: 0.510, blue: 0.561, alpha: 1)
+// Output lands next to this file whatever machine it was cloned onto.
+let DOCS = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+
 let BLUE = NSColor(srgbRed: 0.208, green: 0.596, blue: 0.949, alpha: 1)
-let GREY = NSColor(srgbRed: 0.557, green: 0.557, blue: 0.576, alpha: 1)
+
+/// Light and dark are the same drawing with four colours swapped, so the two
+/// versions of an image can never drift apart.
+struct Theme {
+    let bg, ink, mute, meta: NSColor
+
+    static let light = Theme(
+        bg:   NSColor(srgbRed: 1.000, green: 1.000, blue: 1.000, alpha: 1),
+        ink:  NSColor(srgbRed: 0.067, green: 0.075, blue: 0.094, alpha: 1),
+        mute: NSColor(srgbRed: 0.478, green: 0.510, blue: 0.561, alpha: 1),
+        meta: NSColor(srgbRed: 0.557, green: 0.557, blue: 0.576, alpha: 1))
+
+    static let dark = Theme(
+        bg:   NSColor(srgbRed: 0.043, green: 0.051, blue: 0.071, alpha: 1),
+        ink:  NSColor(srgbRed: 0.941, green: 0.953, blue: 0.973, alpha: 1),
+        mute: NSColor(srgbRed: 0.545, green: 0.580, blue: 0.639, alpha: 1),
+        meta: NSColor(srgbRed: 0.404, green: 0.435, blue: 0.490, alpha: 1))
+}
 
 func font(_ size: CGFloat, _ weight: NSFont.Weight = .regular) -> NSFont {
     NSFont.systemFont(ofSize: size, weight: weight)
@@ -24,7 +44,7 @@ func size(_ s: String, _ attrs: [NSAttributedString.Key: Any]) -> CGSize {
 }
 
 /// The iMessage bubble: pill body, the little tail, and "Delivered" beneath.
-func bubble(text: String, origin: CGPoint, fontSize: CGFloat) -> CGSize {
+func bubble(text: String, origin: CGPoint, fontSize: CGFloat, theme: Theme) -> CGSize {
     let label: [NSAttributedString.Key: Any] = [
         .font: font(fontSize, .bold), .foregroundColor: NSColor.white]
     let tw = size(text, label).width
@@ -57,7 +77,7 @@ func bubble(text: String, origin: CGPoint, fontSize: CGFloat) -> CGSize {
                                   y: r.midY - size(text, label).height / 2))
 
     let delivered: [NSAttributedString.Key: Any] = [
-        .font: font(fontSize * 0.52, .regular), .foregroundColor: GREY]
+        .font: font(fontSize * 0.52, .regular), .foregroundColor: theme.meta]
     let dw = size("Delivered", delivered).width
     draw("Delivered", delivered,
          at: CGPoint(x: r.maxX - dw, y: r.minY - fontSize * 1.15))
@@ -70,50 +90,68 @@ func emoji(_ glyph: String, size s: CGFloat, at p: CGPoint) {
     draw(glyph, attrs, at: p)
 }
 
-func render(_ w: Int, _ h: Int, _ body: () -> Void) -> Data {
+func render(_ w: Int, _ h: Int, _ theme: Theme, _ body: () -> Void) -> Data {
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: w, pixelsHigh: h,
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-    NSColor.white.setFill()
+    theme.bg.setFill()
     NSRect(x: 0, y: 0, width: w, height: h).fill()
     body()
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])!
 }
 
-// ── social preview, 1280×640 ────────────────────────────────────────────────
-let hero = render(1280, 640) {
-    emoji("🖕", size: 300, at: CGPoint(x: 150, y: 158))
-
-    let title: [NSAttributedString.Key: Any] = [
-        .font: font(76, .bold), .foregroundColor: INK]
-    draw("flipoff", title, at: CGPoint(x: 546, y: 398))
-
-    let sub: [NSAttributedString.Key: Any] = [
-        .font: font(30, .regular), .foregroundColor: MUTE]
-    draw("Flip off your webcam. It texts for you.", sub,
-         at: CGPoint(x: 550, y: 350))
-
-    _ = bubble(text: "FUCK YOU", origin: CGPoint(x: 550, y: 196), fontSize: 40)
+func write(_ data: Data, _ name: String) {
+    try! data.write(to: DOCS.appendingPathComponent(name))
+    print("wrote docs/\(name)")
 }
-try! hero.write(to: URL(fileURLWithPath: "/Users/angus/flipoff/docs/social.png"))
+
+// ── social preview, 1280×640 ────────────────────────────────────────────────
+// This is the link card X and GitHub unfurl, so it is the first thing anyone
+// sees. Dark, because a white card on a dark timeline reads as a blank slab,
+// and because the yellow glyph and the blue bubble both glow against it.
+func social(_ theme: Theme) -> Data {
+    render(1280, 640, theme) {
+        emoji("🖕", size: 340, at: CGPoint(x: 158, y: 152))
+
+        draw("flipoff", [.font: font(88, .bold), .foregroundColor: theme.ink],
+             at: CGPoint(x: 566, y: 392))
+
+        draw("Flip off your webcam. It texts for you.",
+             [.font: font(31, .regular), .foregroundColor: theme.mute],
+             at: CGPoint(x: 571, y: 340))
+
+        _ = bubble(text: "FUCK YOU", origin: CGPoint(x: 571, y: 168),
+                   fontSize: 44, theme: theme)
+
+        // Survives being screenshotted and reposted without the link.
+        draw("github.com/hangryclaude/flipoff",
+             [.font: NSFont.monospacedSystemFont(ofSize: 19, weight: .regular),
+              .foregroundColor: theme.meta],
+             at: CGPoint(x: 571, y: 74))
+    }
+}
+write(social(.dark), "social.png")
 
 // ── README hero: sized to the content, not padded out to a banner ─────────
-let banner = render(1040, 380) {
-    emoji("🖕", size: 200, at: CGPoint(x: 96, y: 96))
+// Two files so the README can swap them on prefers-color-scheme; a white hero
+// on GitHub's dark theme is a bright slab across the top of the page.
+func hero(_ theme: Theme) -> Data {
+    render(896, 372, theme) {
+        emoji("🖕", size: 200, at: CGPoint(x: 96, y: 96))
 
-    let title: [NSAttributedString.Key: Any] = [
-        .font: font(62, .bold), .foregroundColor: INK]
-    draw("flipoff", title, at: CGPoint(x: 372, y: 238))
+        draw("flipoff", [.font: font(62, .bold), .foregroundColor: theme.ink],
+             at: CGPoint(x: 372, y: 238))
 
-    let sub: [NSAttributedString.Key: Any] = [
-        .font: font(25, .regular), .foregroundColor: MUTE]
-    draw("Flip off your webcam. It texts for you.", sub, at: CGPoint(x: 376, y: 198))
+        draw("Flip off your webcam. It texts for you.",
+             [.font: font(25, .regular), .foregroundColor: theme.mute],
+             at: CGPoint(x: 376, y: 198))
 
-    _ = bubble(text: "FUCK YOU", origin: CGPoint(x: 376, y: 86), fontSize: 32)
+        _ = bubble(text: "FUCK YOU", origin: CGPoint(x: 376, y: 86),
+                   fontSize: 32, theme: theme)
+    }
 }
-try! banner.write(to: URL(fileURLWithPath: "/Users/angus/flipoff/docs/hero.png"))
-
-print("wrote docs/social.png (1280x640) and docs/hero.png (1600x480)")
+write(hero(.light), "hero.png")
+write(hero(.dark), "hero-dark.png")

@@ -1,6 +1,13 @@
 # flipoff
 
-![flipoff — flip off your webcam, it texts for you](docs/hero.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
+  <img src="docs/hero.png" width="896" alt="flipoff — flip off your webcam, it texts for you">
+</picture>
+
+![macOS](https://img.shields.io/badge/macOS-13%2B-4b5768)
+![pip installs](https://img.shields.io/badge/pip%20installs-0-4b5768)
+![license](https://img.shields.io/badge/license-MIT-4b5768)
 
 Sings the message out loud the instant it sees the gesture, then sends
 **𝗙𝗨𝗖𝗞 𝗬𝗢𝗨** — bold, uppercase — to whichever iMessage conversation you
@@ -9,6 +16,8 @@ have open.
 ![pipeline](docs/pipeline.svg)
 
 ```
+git clone https://github.com/hangryclaude/flipoff && cd flipoff
+
 ./flipoff                        # run it
 ./flipoff --tune                 # camera window + live score, sends nothing
 ./flipoff --to "Jane Doe"        # pin one person instead
@@ -16,8 +25,11 @@ have open.
 ./test_gesture.py                # the suite
 ```
 
-First run fetches `hand_landmarker.task` (7.8MB) beside the script. Nothing else
-is installed.
+Needs macOS and [uv](https://docs.astral.sh/uv/) (`brew install uv`). `flipoff.py`
+declares mediapipe, opencv and numpy inline as a [PEP 723](https://peps.python.org/pep-0723/)
+script, so uv builds a throwaway environment on first run and your own Python
+install is left alone. That run also fetches `hand_landmarker.task` (7.8 MB)
+beside the script.
 
 ## How it decides
 
@@ -30,7 +42,7 @@ Each finger is measured by **extension**: straight-line knuckle-to-tip divided b
 the length of the bone path. 1.0 is straight, ~0.35 is a clenched fist. It needs
 no reference frame, so hand orientation and metacarpal geometry can't skew it.
 
-![how it decides](docs/detection.png)
+![how it decides](docs/detection.svg)
 
 Every number below came off a real webcam, not a model:
 
@@ -44,12 +56,14 @@ The score is `min()` over four constraints — middle extended, and index / ring
 pinky each folded — so one straight finger sinks it. Each is a smooth ramp, not a
 cutoff, because real flip-offs are sloppy.
 
-Three deliberate asymmetries:
+Three deliberate choices:
 
-- **Folded means folded.** The bands start at 0.80, not 0.90. A merely *relaxed*
-  finger isn't folded, and that gap is the entire hand-to-face family — pushing
-  your glasses up with your middle finger scored **0.88** before this was
-  tightened. So did nose scratches and chin rests. All would have sent a text.
+- **The fold bands are loose.** Index and pinky ramp from 0.88 down to 0.76; the
+  ring finger gets 0.90 down to 0.78. Tight bands (0.80 down to 0.70) read better
+  on paper and threw away real gestures — one live flip-off scored **0.33**
+  against them. Loosening them fixed that and let part of the hand-to-face family
+  back in, which is the cost written down in
+  [Known limitations](#known-limitations).
 - **The ring finger gets slack.** Its tendons share a sheath with the middle
   finger's, so many people physically can't fold it while the middle stands up.
   Safe only because the index and pinky still have to fold properly.
@@ -66,7 +80,8 @@ pose only fires once. About a quarter second, gesture to sent.
 
 ### Measured
 
-Real recorded frames, replayed through the classifier:
+Real recorded frames, replayed through the classifier. This is the result the
+thresholds were actually calibrated against:
 
 ```
 real flip-off:       10/10 fire
@@ -76,13 +91,21 @@ real ordinary hand:   0/14 fire
 Under synthetic landmark noise, holding a pose 2s at 30fps (MediaPipe's error is
 ~2–3mm on a well-lit hand, so 4mm is pessimistic):
 
-| pose | fires |
-|---|---|
-| textbook flip-off @ 3mm | 100% |
-| hyperextended middle @ 3mm | 100% |
-| push glasses up @ 4mm | **0%** |
-| nose scratch @ 4mm | **0%** |
-| open palm @ 4mm | **0%** |
+| pose | fires | |
+|---|---|---|
+| textbook flip-off @ 3mm | 100% | wanted |
+| hyperextended middle @ 3mm | 100% | wanted |
+| open palm @ 4mm | **0%** | wanted |
+| nose scratch @ 4mm | **35%** | false positive |
+| push glasses up @ 4mm | **100%** | false positive |
+
+Those last two are real failures, and `./test_gesture.py` reports them as
+failures rather than quietly passing. They are what the loose fold bands cost.
+The bands stay loose because the recorded-frame numbers above outrank synthetic
+ones: these poses come from a hand model that has already been wrong three times,
+and the real negatives that would settle them aren't recorded yet. Until they
+are, assume anything that parks your middle finger near your face can send a
+text.
 
 ## Cost of leaving it on
 
@@ -107,16 +130,21 @@ is reported and skipped rather than ending a week-long run.
 
 ## Known limitations
 
-Printed by the test suite on every run rather than buried here:
+The first two are printed by the test suite on every run rather than buried here:
 
 - **A hand resting under your chin** with three fingers folded and the middle
   extended *is* the gesture, geometrically. Sit like that and it fires.
 - **A middle finger straight but folded 90° at the knuckle** reads as extended.
   Real gestures run 68–82° at the knuckle and ordinary hands 48–127° — the ranges
   overlap, so every threshold that rejects this also rejects real gestures.
-- **A lazy flip-off doesn't count.** Middle finger out but the others only
-  half-curled is indistinguishable from scratching your face. Commit to it, or
-  lower `--threshold`.
+- **A lazy flip-off counts.** Middle finger out with the others only half-curled
+  scores 1.00 on the current bands, which is the same reason pushing your glasses
+  up can send a text. Raise `--threshold` and you start losing real gestures
+  instead; the two failures are the same knob.
+- **Nothing here is a face detector.** It scores one hand in isolation, so it
+  cannot tell a gesture aimed at the camera from the identical shape aimed at
+  your own nose. Fixing that needs the hand's position relative to your face,
+  which needs a second model.
 
 ## Sending
 
@@ -175,11 +203,12 @@ nohup ./flipoff >> flipoff.log 2>&1 &
 ```
 
 Survives closing the terminal; dies on logout. `com.angus.flipoff.plist` is a
-LaunchAgent for login persistence, but be warned: **TCC grants attach to the
-responsible process**, and a launchd job is a different identity with no Camera
-or Accessibility of its own. Loading it as-is produces a crash loop. Getting it
-working needs those permissions granted to the launchd binary, or an `.app`
-wrapper to give TCC a stable identity.
+LaunchAgent for login persistence — its paths are placeholders, since launchd
+resolves nothing relative — but be warned: **TCC grants attach to the responsible
+process**, and a launchd job is a different identity with no Camera or
+Accessibility of its own. Loading it produces a crash loop. Getting it working
+needs those permissions granted to the launchd binary, or an `.app` wrapper to
+give TCC a stable identity. The menu-bar app above is the easier route.
 
 ## Options
 
@@ -209,3 +238,8 @@ Watch the bar; green past the tick means it would fire. The recording is real
 landmarks from your hand, which is what `fixtures.json` was built from — and what
 every threshold in here was calibrated against after a synthetic model got them
 badly wrong.
+
+`./docs/chart.py` redraws the figure above from `fixtures.json` and reads the
+bands out of `flipoff.py`, so add your own frames and the picture updates with
+them. It used to be a hand-built image, which is how it spent a while
+advertising thresholds the code had already moved off.

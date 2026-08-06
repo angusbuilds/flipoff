@@ -12,7 +12,10 @@
 
 import Cocoa
 
-private let dir = "/Users/angus/flipoff"
+// Wherever this binary was built to -- the detector, log and args file all sit
+// beside it, so a clone works without editing anything.
+private let dir = (Bundle.main.executableURL?.resolvingSymlinksInPath()
+    .deletingLastPathComponent().path) ?? FileManager.default.currentDirectoryPath
 private let exe = "\(dir)/flipoff"
 private let logPath = "\(dir)/flipoff.log"
 private let argsPath = "\(dir)/args"
