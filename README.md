@@ -5,10 +5,12 @@ Flip off your webcam. It texts for you.
 Sings the message out loud the instant it sees the gesture, then sends
 **𝗙𝗨𝗖𝗞 𝗬𝗢𝗨** — bold, uppercase — with iMessage fireworks on the other end.
 
+![how it decides](docs/detection.png)
+
 ```
 ./flipoff                        # run it
 ./flipoff --tune                 # camera window + live score, sends nothing
-./flipoff --to "Jane Doe"        # always text one person
+./flipoff --to "Jane Doe"        # pin one person instead
 ./flipoff -m "hey" --effect none # different message, no animation
 ./test_gesture.py                # the suite
 ```
@@ -94,16 +96,21 @@ Printed by the test suite on every run rather than buried here:
 
 ## Sending
 
-Two paths, and `--to` is the sturdier one:
+By default it texts **whichever conversation you have selected**. The Messages
+window title is the contact's name, and that name resolves to a handle, so the
+message is addressed to the person directly — no dependence on the message box
+holding keyboard focus.
 
 | | how | needs |
 |---|---|---|
-| `--to "Name"` | addresses the person via `send ... to participant` | nothing |
-| default | pastes into the open conversation and hits return | Accessibility, focused message box |
+| default | selected conversation → name → handle → `send ... to participant` | nothing |
+| `--to "Name"` | same, but pinned to one person whatever is open | nothing |
+| fallback | pastes into the front window and hits return | Accessibility |
 
-The default path **pastes** rather than types. `keystroke` cannot produce
-astral-plane characters — the bold capitals live at U+1D5D4 and up — and typing
-them emits a run of junk instead of the message.
+The fallback only runs when a title matches no single participant, which mostly
+means group chats. It **pastes** rather than types, because `keystroke` cannot
+produce astral-plane characters — the bold capitals live at U+1D5D4 and up — and
+typing them emits a run of junk instead of the message.
 
 **Fireworks** ride on iMessage's trigger-phrase detection, which runs on the
 recipient's device: the message carries `Happy New Year`, and their phone plays
@@ -121,6 +128,21 @@ System Settings → Privacy & Security, granted to whichever terminal launches i
 Accessibility is checked at startup and exits with instructions if missing. A
 denied Automation prompt is reported the first time it bites, rather than
 silently turning the whole thing into a no-op that looks like it's working.
+
+## Menu bar
+
+```
+swiftc -O menubar.swift -o flipoff-menu && ./flipoff-menu
+```
+
+A middle finger in the menu bar: dimmed when off, solid when armed, click to
+toggle. Native AppKit, so it adds no dependencies — `swiftc` ships with the
+Command Line Tools. Flags live in an `args` file beside it, one per line.
+
+Launching the detector from here is also the cleanest fix for permissions. TCC
+attributes Camera and Accessibility to the *responsible* process, and a menu-bar
+app is a real GUI app that can show the prompt — which is exactly what the
+LaunchAgent below cannot do.
 
 ## Running in the background
 

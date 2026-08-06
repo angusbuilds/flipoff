@@ -8,3 +8,5 @@ probe*.jsonl
 
 __pycache__/
 .DS_Store
+args
+flipoff-menu

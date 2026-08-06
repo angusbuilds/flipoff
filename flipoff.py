@@ -641,6 +641,17 @@ def main():
                 if not now_target:
                     print(f"[{clock}] detected, but no conversation open - skipped",
                           flush=True)
+                    continue
+                # Prefer addressing the selected conversation by handle. The
+                # window title is the contact's name, so it resolves the same way
+                # --to does -- which means no dependence on the message box
+                # actually holding keyboard focus. Pasting is the fallback for
+                # group chats and titles that match no single participant.
+                to_handle = resolve_handle(now_target)
+                if to_handle and send_direct(to_handle, args.message):
+                    last_sent = now
+                    print(f"[{clock}] -> {now_target}: {args.message!r}  "
+                          f"({det.smooth:.2f})", flush=True)
                 elif send(args.message):
                     # Only a real send starts the cooldown. Charging it for a
                     # skip would mute the next 8 seconds over a message that
