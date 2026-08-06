@@ -318,6 +318,39 @@ def send(text):
     return True
 
 
+# Unicode "mathematical sans-serif bold" capitals. iMessage has no markdown, so
+# this is the only way to make the text itself render bold -- and being ordinary
+# Unicode it survives SMS, Android and notification previews alike. It is also
+# why the fallback send pastes instead of typing: `keystroke` cannot emit these.
+_BOLD_A = 0x1D5D4
+_BOLD_0 = 0x1D7EC
+
+
+def boldize(text):
+    out = []
+    for ch in text.upper():
+        if "A" <= ch <= "Z":
+            out.append(chr(_BOLD_A + ord(ch) - ord("A")))
+        elif "0" <= ch <= "9":
+            out.append(chr(_BOLD_0 + ord(ch) - ord("0")))
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+# iMessage plays a full-screen effect when the message contains one of these
+# phrases. It is keyword detection on the RECEIVING device, which is why it
+# works from a Mac at all -- the compose-side effects picker is iOS-only, so
+# there is no menu here to automate.
+EFFECT_TRIGGERS = {
+    "fireworks": "Happy New Year",
+    "confetti": "Congratulations",
+    "balloons": "Happy Birthday",
+    "lasers": "Pew pew",
+    "none": "",
+}
+
+
 def speak(text, voice="Cellos"):
     """Sing it out loud the instant the gesture lands.
 
