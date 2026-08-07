@@ -1,9 +1,10 @@
 # flipoff
 
-Flip off your webcam. It texts for you.
+![flipoff — flip off your webcam, it texts for you](docs/hero.png)
 
 Sings the message out loud the instant it sees the gesture, then sends
-**𝗙𝗨𝗖𝗞 𝗬𝗢𝗨** — bold, uppercase — with iMessage fireworks on the other end.
+**𝗙𝗨𝗖𝗞 𝗬𝗢𝗨** — bold, uppercase — to whichever iMessage conversation you
+have open.
 
 ![pipeline](docs/pipeline.svg)
 

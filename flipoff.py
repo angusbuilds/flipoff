@@ -18,6 +18,7 @@ which defeats the whole point. Use --tune to watch the score live.
 """
 
 import argparse
+import fcntl
 import json
 import os
 import stat
@@ -58,13 +59,13 @@ FOLDERS = (INDEX, RING, PINKY)
 # nowhere near the ~0.35 of a clenched fist -- nobody actually makes a fist to
 # flip someone off, and assuming they did is what made this reject everything.
 MIDDLE_EXTENDED = (0.80, 0.90)
-OTHER_FOLDED = (0.80, 0.70)     # descending: smaller ratio means more folded
+OTHER_FOLDED = (0.88, 0.76)     # descending: smaller ratio means more folded
 
 # The ring finger gets its own looser band. Its tendons share a sheath with the
 # middle finger's, so plenty of people physically cannot fold it much while the
 # middle stands up -- holding it to the index's standard loses real gestures.
 # Safe to loosen because the index and pinky still have to be properly folded.
-RING_FOLDED = (0.82, 0.72)
+RING_FOLDED = (0.90, 0.78)
 FOLD_BAND = {INDEX: OTHER_FOLDED, RING: RING_FOLDED, PINKY: OTHER_FOLDED}
 
 # Straight-but-folded-at-the-knuckle reads as extended by ratio alone; this
@@ -94,6 +95,7 @@ MIN_CONFIDENCE = 0.6
 ACTIVE_FPS, IDLE_FPS = 30.0, 2.0
 IDLE_AFTER = 3.0        # seconds without a hand before throttling down
 LOG_LIMIT = 4 * 1024 * 1024
+LOCK_FILE = "/tmp/flipoff.lock"
 
 CONNECTIONS = (  # for --tune only
     (0, 1), (0, 5), (0, 17), (5, 9), (9, 13), (13, 17),
@@ -415,6 +417,25 @@ def send_direct(handle, text):
     return r.returncode == 0
 
 
+def claim_single_instance():
+    """Hold an exclusive lock for as long as this process lives, or refuse to run.
+
+    Two detectors both holding the camera is the failure that actually hurts:
+    doubled CPU, contention over the device, and a menu-bar toggle that can only
+    ever stop one of them. flock is released by the kernel on exit however the
+    process dies, so a crash cannot leave a stale lock behind.
+    """
+    handle = open(LOCK_FILE, "w")
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        handle.close()
+        return None
+    handle.write(f"{os.getpid()}\n")
+    handle.flush()
+    return handle          # caller keeps this alive; closing it frees the lock
+
+
 def rotate_log():
     """Truncate our own stdout if it has grown past LOG_LIMIT.
 
@@ -510,6 +531,11 @@ def main():
         args.test = True
 
     ensure_model()
+
+    lock = claim_single_instance()
+    if lock is None:
+        sys.exit("another flipoff is already running (it holds the camera).\n"
+                 "Stop it first:  pkill -f flipoff.py")
 
     spoken = args.message
     if args.bold:

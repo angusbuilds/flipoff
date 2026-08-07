@@ -34,7 +34,20 @@ final class Controller: NSObject, NSApplicationDelegate {
                   .filter { !$0.isEmpty && !$0.hasPrefix("#") }
     }
 
-    private var isRunning: Bool { task?.isRunning ?? false }
+    /// Ask the system, rather than trusting our own handle. A detector that was
+    /// orphaned, started from a terminal, or left over from a previous launch is
+    /// still holding the camera -- a stale `Process` reference would report it
+    /// as off and offer to start a second one.
+    private var isRunning: Bool {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        p.arguments = ["-f", "flipoff\\.py"]
+        p.standardOutput = Pipe()
+        p.standardError = Pipe()
+        do { try p.run() } catch { return task?.isRunning ?? false }
+        p.waitUntilExit()
+        return p.terminationStatus == 0
+    }
 
     /// Armed state survives a relaunch, so turning it on is a one-time act
     /// rather than something to redo after every reboot.
@@ -46,8 +59,13 @@ final class Controller: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ note: Notification) {
         NSApp.setActivationPolicy(.accessory)   // menu bar only, no Dock icon
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if wasArmed { start() }
+        if wasArmed && !isRunning { start() }
         render()
+        // The detector can die or be killed from a terminal without telling us,
+        // so re-read the truth on a timer instead of only on click.
+        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            self?.render()
+        }
         // The child is not reparented on quit, so make sure it dies with us.
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
