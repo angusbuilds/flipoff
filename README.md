@@ -13,6 +13,12 @@ Sings the message out loud the instant it sees the gesture, then sends
 **𝗙𝗨𝗖𝗞 𝗬𝗢𝗨** — bold, uppercase — to whichever iMessage conversation you
 have open.
 
+<p align="center">
+  <img src="docs/demo.gif" width="280" alt="a hand flips off a MacBook webcam and the message lands in Messages">
+</p>
+
+One take, filmed on a phone. Sharper copy in [docs/demo.mp4](docs/demo.mp4).
+
 ![pipeline](docs/pipeline.svg)
 
 ```
